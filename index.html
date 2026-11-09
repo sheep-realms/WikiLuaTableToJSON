@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wiki Lua Table to JSON</title>
+    <style>
+        .action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+        }
+
+        .data-table {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .table-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            display: block;
+        }
+
+        textarea {
+            display: block;
+            min-height: 60vh;
+        }
+
+        button {
+            height: 2rem;
+            min-width: 10rem;
+        }
+    </style>
+    <script>
+        function luaTableToJSON(source) {
+            const result = {};
+            const regex = /\[\s*(['"])(.*?)\1\s*\]\s*=\s*(\{[^}]*\}|-?\d+(?:\.\d+)?|true|false|"[^"]*"|'[^']*')\s*,?/g;
+
+            let match;
+
+            while ((match = regex.exec(source)) !== null) {
+                const key = match[2];
+                let value = match[3].trim();
+
+                if (value.startsWith('{') && value.endsWith('}')) {
+                    const content = value.slice(1, -1).trim();
+
+                    if (!content) {
+                        value = [];
+                    } else {
+                        value = content.split(',').map(item => {
+                            item = item.trim();
+
+                            if (
+                                (item.startsWith("'") && item.endsWith("'")) ||
+                                (item.startsWith('"') && item.endsWith('"'))
+                            ) {
+                                return item.slice(1, -1);
+                            }
+
+                            if (/^-?\d+(?:\.\d+)?$/.test(item)) return Number(item);
+
+                            if (item === 'true') return true;
+                            if (item === 'false') return false;
+
+                            return item;
+                        });
+                    }
+                } else if (/^-?\d+(?:\.\d+)?$/.test(value)) {
+                    value = Number(value);
+                } else if (value === 'true') {
+                    value = true;
+                } else if (value === 'false') {
+                    value = false;
+                } else {
+                    value = value.slice(1, -1);
+                }
+
+                result[key] = value;
+            }
+
+            return JSON.stringify(result, null, 4);
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Wiki Lua Table to JSON</h1>
+    </header>
+    <main>
+        <div class="action">
+            <button id="btn-output">Convert</button>
+        </div>
+        <div class="data-table">
+            <div class="table-content">
+                <label for="data-input">Lua</label>
+                <textarea name="data-input" id="data-input"></textarea>
+            </div>
+            <div class="table-content">
+                <label for="data-output">JSON</label>
+                <textarea name="data-output" id="data-output"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.querySelector('#btn-output').onclick = () => {
+            const luaTable = document.querySelector('#data-input').value;
+            const outputTextarea = document.querySelector('#data-output');
+            outputTextarea.value = luaTableToJSON(luaTable);
+        };
+    </script>
+</body>
+</html>
